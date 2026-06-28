@@ -5,26 +5,17 @@ from aiogram import Bot, Dispatcher
 
 from config import BOT_TOKEN
 
-# HANDLERS IMPORT
-from handlers import start
-from handlers import menu
-from handlers import age
-from handlers import currency
-from handlers import weather
-from handlers import time
-from handlers import prayer
-from handlers import learn_prayer
+from handlers import start, menu, age, currency, weather, time, prayer, learn_prayer
 
-
-# logging
 logging.basicConfig(level=logging.INFO)
 
 
 async def main():
+    print("BOT STARTING...")
+
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher()
 
-    # ROUTERS ULASH
     dp.include_router(start.router)
     dp.include_router(menu.router)
     dp.include_router(age.router)
@@ -34,7 +25,7 @@ async def main():
     dp.include_router(prayer.router)
     dp.include_router(learn_prayer.router)
 
-    print("🤖 JavoVerse Bot ishga tushdi!")
+    print("ALL ROUTERS LOADED")
 
     await dp.start_polling(bot)
 
