@@ -1,62 +1,34 @@
-from telebot import types
-from state import state
+from aiogram import Router, types
 
-CURRENCIES = [
-    "🇺🇸 USD",
-    "🇪🇺 EUR",
-    "🇷🇺 RUB",
-    "🇬🇧 GBP",
-    "🇨🇳 CNY",
-    "🇯🇵 JPY",
-    "🇰🇿 KZT",
-    "🇹🇷 TRY",
-    "🇰🇷 KRW",
-    "🇦🇪 AED"
-]
+router = Router()
 
-def register(bot):
+rates = {
+    "USD": 12500,
+    "EUR": 13500,
+    "RUB": 135,
+    "GBP": 16000,
+    "TRY": 400,
+    "KZT": 25,
+    "CNY": 1700,
+    "KRW": 9,
+    "JPY": 85,
+    "AED": 3400
+}
 
-    @bot.message_handler(func=lambda message: message.text == "💱 Valyuta")
-    def currency_menu(message):
+@router.message(lambda m: "valyuta" in m.text.lower())
+async def currency_menu(message: types.Message):
+    text = "💱 Format:\nUSD 10\nEUR 5\nva hokazo"
+    await message.answer(text)
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-        for currency in CURRENCIES:
-            markup.add(currency)
+@router.message()
+async def convert(message: types.Message):
+    try:
+        cur, amount = message.text.split()
+        amount = float(amount)
 
-        markup.add("⬅️ Orqaga")
-
-        state[message.chat.id] = "currency"
-
-        bot.send_message(
-            message.chat.id,
-            "💱 Kerakli valyutani tanlang:",
-            reply_markup=markup
-        )
-
-    @bot.message_handler(func=lambda message: state.get(message.chat.id) == "currency")
-    def currency_info(message):
-
-        if message.text == "⬅️ Orqaga":
-            state.pop(message.chat.id, None)
-            return
-
-        rates = {
-            "🇺🇸 USD": "1 USD ≈ 12 800 UZS",
-            "🇪🇺 EUR": "1 EUR ≈ 14 900 UZS",
-            "🇷🇺 RUB": "1 RUB ≈ 165 UZS",
-            "🇬🇧 GBP": "1 GBP ≈ 17 200 UZS",
-            "🇨🇳 CNY": "1 CNY ≈ 1 780 UZS",
-            "🇯🇵 JPY": "1 JPY ≈ 89 UZS",
-            "🇰🇿 KZT": "1 KZT ≈ 25 UZS",
-            "🇹🇷 TRY": "1 TRY ≈ 320 UZS",
-            "🇰🇷 KRW": "1 KRW ≈ 9 UZS",
-            "🇦🇪 AED": "1 AED ≈ 3 485 UZS"
-        }
-
-        bot.send_message(
-            message.chat.id,
-            rates.get(message.text, "❌ Noma'lum valyuta.")
-        )
-
-        state.pop(message.chat.id, None)
+        if cur.upper() in rates:
+            result = amount * rates[cur.upper()]
+            await message.answer(f"💰 {amount} {cur.upper()} = {result} UZS")
+    except:
+        pass
