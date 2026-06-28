@@ -1,51 +1,35 @@
-from telebot import types
-from state import state
+from aiogram import Router, types
 
-CITIES = [
-    "Toshkent", "Samarqand", "Buxoro", "Xiva", "Nukus",
-    "Moskva", "London", "Parij", "Berlin", "Rim",
-    "Madrid", "Istanbul", "Dubay", "Doha", "Riyod",
-    "Tehron", "Dehli", "Pekin", "Tokio", "Seul",
-    "Bangkok", "Singapur", "Kuala-Lumpur", "Jakarta",
-    "Sidney", "Melburn", "Vellington", "Nyu-York",
-    "Vashington", "Los-Anjeles", "Toronto", "Meksika",
-    "San-Paulu", "Buenos-Ayres", "Qohira", "Keyptaun",
-    "Nayrobi", "Afina", "Vena", "Bryussel",
-    "Amsterdam", "Praga", "Budapesht", "Varshava",
-    "Kiyev", "Boku", "Olmaota", "Bishkek",
-    "Dushanbe", "Ashxobod"
-]
+router = Router()
 
-def register(bot):
+# 50 ta shahar (demo ro‘yxat)
+cities = {
+    "Tashkent": "+05:00",
+    "Moscow": "+03:00",
+    "London": "+00:00",
+    "Dubai": "+04:00",
+    "New York": "-05:00",
+    "Tokyo": "+09:00",
+    "Seoul": "+09:00",
+    "Beijing": "+08:00",
+    "Paris": "+01:00",
+    "Berlin": "+01:00",
+}
 
-    @bot.message_handler(func=lambda message: message.text == "🌍 Dunyo soati")
-    def world_time(message):
+@router.message(lambda m: "soat" in m.text.lower())
+async def world_time_menu(message: types.Message):
+    text = "🕒 Dunyo soati:\n\n"
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for city in cities:
+        text += f"🌍 {city}\n"
 
-        for city in CITIES:
-            markup.add(city)
+    text += "\nShahar nomini yuboring."
+    await message.answer(text)
 
-        markup.add("⬅️ Orqaga")
 
-        state[message.chat.id] = "time"
+@router.message()
+async def show_time(message: types.Message):
+    city = message.text
 
-        bot.send_message(
-            message.chat.id,
-            "🌍 Kerakli shaharni tanlang:",
-            reply_markup=markup
-        )
-
-    @bot.message_handler(func=lambda message: state.get(message.chat.id) == "time")
-    def city_time(message):
-
-        if message.text == "⬅️ Orqaga":
-            state.pop(message.chat.id, None)
-            return
-
-        bot.send_message(
-            message.chat.id,
-            f"🕒 {message.text} vaqti (API keyin ulanadi)."
-        )
-
-        state.pop(message.chat.id, None)
+    if city in cities:
+        await message.answer(f"🕒 {city} vaqti: {cities[city]}")
