@@ -1,43 +1,36 @@
-from telebot import types
-from state import state
+from aiogram import Router, types
 
-REGIONS = [
-    "Toshkent", "Andijon", "Buxoro", "Farg'ona",
-    "Jizzax", "Xorazm", "Namangan", "Navoiy",
-    "Qashqadaryo", "Qoraqalpog'iston",
-    "Samarqand", "Sirdaryo", "Surxondaryo"
-]
+router = Router()
 
-def register(bot):
+regions = {
+    "Toshkent": ["Chilonzor", "Yunusobod", "Bektemir"],
+    "Andijon": ["Asaka", "Xonobod", "Shahrixon"],
+    "Farg‘ona": ["Marg‘ilon", "Qo‘qon", "Farg‘ona"],
+}
 
-    @bot.message_handler(func=lambda message: message.text == "☁️ Ob-havo")
-    def weather_menu(message):
+@router.message(lambda m: "ob-havo" in m.text.lower())
+async def weather_menu(message: types.Message):
+    text = "🌤 Viloyatni tanlang:\n\n"
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for region in regions:
+        text += f"📍 {region}\n"
 
-        for region in REGIONS:
-            markup.add(region)
+    await message.answer(text)
 
-        markup.add("⬅️ Orqaga")
 
-        state[message.chat.id] = "weather"
+@router.message()
+async def weather_region(message: types.Message):
+    region = message.text
 
-        bot.send_message(
-            message.chat.id,
-            "🌤 Viloyatni tanlang:",
-            reply_markup=markup
-        )
+    if region in regions:
+        text = f"🌤 {region} tumanlari:\n\n"
 
-    @bot.message_handler(func=lambda message: state.get(message.chat.id) == "weather")
-    def weather_region(message):
+        for tuman in regions[region]:
+            text += f"• {tuman}\n"
 
-        if message.text == "⬅️ Orqaga":
-            state.pop(message.chat.id, None)
-            return
+        text += "\nTuman nomini tanlang (demo ob-havo chiqadi)."
 
-        bot.send_message(
-            message.chat.id,
-            f"🌤 {message.text} ob-havosi (API keyin ulanadi)."
-        )
+        await message.answer(text)
 
-        state.pop(message.chat.id, None)
+    elif any(region in t for tlist in regions.values() for t in tlist):
+        await message.answer(f"🌤 {region} hozir: 28°C, quyoshli ☀️")
