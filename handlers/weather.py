@@ -1,36 +1,34 @@
+import requests
 from aiogram import Router, types
 
 router = Router()
 
-regions = {
-    "Toshkent": ["Chilonzor", "Yunusobod", "Bektemir"],
-    "Andijon": ["Asaka", "Xonobod", "Shahrixon"],
-    "Farg‘ona": ["Marg‘ilon", "Qo‘qon", "Farg‘ona"],
-}
+API_KEY = "YOUR_OPENWEATHER_API_KEY"
 
 @router.message(lambda m: "ob-havo" in m.text.lower())
-async def weather_menu(message: types.Message):
-    text = "🌤 Viloyatni tanlang:\n\n"
-
-    for region in regions:
-        text += f"📍 {region}\n"
-
-    await message.answer(text)
-
+async def weather_start(message: types.Message):
+    await message.answer("🌤 Shahar nomini yuboring (masalan: Tashkent)")
 
 @router.message()
-async def weather_region(message: types.Message):
-    region = message.text
+async def get_weather(message: types.Message):
+    city = message.text
 
-    if region in regions:
-        text = f"🌤 {region} tumanlari:\n\n"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
 
-        for tuman in regions[region]:
-            text += f"• {tuman}\n"
+    response = requests.get(url)
+    data = response.json()
 
-        text += "\nTuman nomini tanlang (demo ob-havo chiqadi)."
+    if data.get("cod") != 200:
+        await message.answer("❌ Shahar topilmadi")
+        return
 
-        await message.answer(text)
+    temp = data["main"]["temp"]
+    feel = data["main"]["feels_like"]
+    desc = data["weather"][0]["description"]
 
-    elif any(region in t for tlist in regions.values() for t in tlist):
-        await message.answer(f"🌤 {region} hozir: 28°C, quyoshli ☀️")
+    await message.answer(
+        f"🌤 {city}\n"
+        f"🌡 Harorat: {temp}°C\n"
+        f"🤔 His qilinadi: {feel}°C\n"
+        f"☁️ Holat: {desc}"
+    )
