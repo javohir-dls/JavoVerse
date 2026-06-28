@@ -1,43 +1,24 @@
-from telebot import types
-from state import state
+from aiogram import Router, types
 
-REGIONS = [
-    "Toshkent", "Andijon", "Buxoro", "Farg'ona",
-    "Jizzax", "Xorazm", "Namangan", "Navoiy",
-    "Qashqadaryo", "Qoraqalpog'iston", "Samarqand",
-    "Sirdaryo", "Surxondaryo"
+router = Router()
+
+regions = [
+    "Toshkent", "Andijon", "Namangan", "Farg‘ona",
+    "Samarqand", "Buxoro", "Xorazm", "Navoiy",
+    "Qashqadaryo", "Surxondaryo", "Jizzax", "Sirdaryo",
+    "Qoraqalpog‘iston"
 ]
 
-def register(bot):
+@router.message(lambda m: "namoz" in m.text.lower())
+async def prayer_regions(message: types.Message):
+    await message.answer("🕌 Viloyatni tanlang:\n\n" + "\n".join(regions))
 
-    @bot.message_handler(func=lambda message: message.text == "🕌 Namoz")
-    def prayer_menu(message):
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-        for region in REGIONS:
-            markup.add(region)
-
-        markup.add("⬅️ Orqaga")
-
-        state[message.chat.id] = "prayer"
-
-        bot.send_message(
-            message.chat.id,
-            "📍 Viloyatni tanlang:",
-            reply_markup=markup
+@router.message()
+async def prayer_time(message: types.Message):
+    # hozir demo (keyin API qo‘shamiz)
+    if message.text in regions:
+        await message.answer(
+            f"🕌 {message.text} uchun namoz vaqti:\n"
+            f"Bomdod: 05:10\nPeshin: 12:30\nAsr: 16:45\nShom: 18:10\nXufton: 19:40"
         )
-
-    @bot.message_handler(func=lambda message: state.get(message.chat.id) == "prayer")
-    def prayer_region(message):
-
-        if message.text == "⬅️ Orqaga":
-            state.pop(message.chat.id, None)
-            return
-
-        bot.send_message(
-            message.chat.id,
-            f"🕌 {message.text} namoz vaqti (API keyin ulanadi)."
-        )
-
-        state.pop(message.chat.id, None)
