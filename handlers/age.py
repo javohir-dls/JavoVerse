@@ -1,46 +1,28 @@
+from aiogram import Router, types
 from datetime import datetime
-from telebot import types
-from state import state
 
-def register(bot):
+router = Router()
 
-    @bot.message_handler(func=lambda message: message.text == "👶 Yosh kalkulyator")
-    def age_start(message):
+@router.message(lambda m: "yosh" in m.text.lower())
+async def ask_birth(message: types.Message):
+    await message.answer("📅 Tug‘ilgan sanani yuboring:\nFormat: YYYY-MM-DD")
 
-        state[message.chat.id] = "age"
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add("⬅️ Orqaga")
+@router.message()
+async def calc_age(message: types.Message):
+    try:
+        birth = datetime.strptime(message.text, "%Y-%m-%d")
+        now = datetime.now()
 
-        bot.send_message(
-            message.chat.id,
-            "📅 Tug'ilgan sanangizni kiriting.\n\nMisol: 2010-01-31",
-            reply_markup=markup
+        days = (now - birth).days
+        months = days // 30
+        years = days // 365
+
+        await message.answer(
+            f"📊 Natija:\n"
+            f"🗓 Yil: {years}\n"
+            f"📆 Oy: {months}\n"
+            f"📅 Kun: {days}"
         )
-
-    @bot.message_handler(func=lambda message: state.get(message.chat.id) == "age")
-    def age_calculator(message):
-
-        if message.text == "⬅️ Orqaga":
-            state.pop(message.chat.id, None)
-            return
-
-        try:
-            birth = datetime.strptime(message.text, "%Y-%m-%d")
-            today = datetime.now()
-
-            days = (today - birth).days
-            years = days // 365
-
-            bot.send_message(
-                message.chat.id,
-                f"🎉 Siz taxminan {years} yoshdasiz.\n📆 {days} kun yashagansiz."
-            )
-
-        except:
-            bot.send_message(
-                message.chat.id,
-                "❌ Sana noto'g'ri.\nMisol: 2010-01-31"
-            )
-
-        state.pop(message.chat.id, None)
+    except:
+        pass
