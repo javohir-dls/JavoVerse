@@ -1,18 +1,18 @@
-from telebot import types
+from aiogram import Router, types
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-def register(bot):
+router = Router()
 
-    @bot.callback_query_handler(func=lambda call: call.data == "check_sub")
-    def check_subscription(call):
+main_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="💱 Valyuta kursi"), KeyboardButton(text="🕒 Dunyo soati")],
+        [KeyboardButton(text="🕌 Namoz vaqti"), KeyboardButton(text="📿 99 Ism")],
+        [KeyboardButton(text="🌤 Ob-havo"), KeyboardButton(text="📅 Yosh kalkulyatori")]
+    ],
+    resize_keyboard=True
+)
 
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-
-        markup.row("🎵 MP3", "☁️ Ob-havo")
-        markup.row("🕌 Namoz", "💱 Valyuta")
-        markup.row("🌍 Dunyo soati", "👶 Yosh kalkulyator")
-
-        bot.send_message(
-            call.message.chat.id,
-            "✅ Asosiy menyu",
-            reply_markup=markup
-        )
+@router.message()
+async def show_menu(message: types.Message):
+    if message.text == "🏠 Menu":
+        await message.answer("📌 Asosiy menyu:", reply_markup=main_menu)
