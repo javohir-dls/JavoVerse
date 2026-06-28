@@ -6,10 +6,10 @@ from config import TOKEN, CHANNEL, INSTAGRAM
 bot = telebot.TeleBot(TOKEN)
 
 # ---------------- STATE ----------------
-user_state = {}
-user_data = {}
+state = {}
+data = {}
 
-# ---------------- UZBEK REGIONS ----------------
+# ---------------- REGIONS ----------------
 regions = [
     "Toshkent", "Andijon", "Buxoro", "Farg‘ona",
     "Jizzax", "Namangan", "Navoiy", "Qashqadaryo",
@@ -17,13 +17,23 @@ regions = [
     "Xorazm", "Qoraqalpog‘iston"
 ]
 
-# ---------------- CHECK SUB ----------------
-def is_member(user_id):
+# ---------------- SUB CHECK (GLOBAL LOCK) ----------------
+def is_subscribed(user_id):
     try:
         member = bot.get_chat_member(CHANNEL, user_id)
         return member.status in ["member", "administrator", "creator"]
     except:
         return False
+
+
+def block_not_subscribed(message):
+    if not is_subscribed(message.from_user.id):
+        bot.send_message(
+            message.chat.id,
+            "❌ Botdan foydalanish uchun kanalga obuna bo‘ling!"
+        )
+        return True
+    return False
 
 # ---------------- START ----------------
 @bot.message_handler(commands=['start'])
@@ -40,7 +50,7 @@ def start(message):
     )
 
     bot.send_message(message.chat.id,
-        "👋 JavoVerse botga xush kelibsiz!\n\nAvval kanalga obuna bo‘ling.",
+        "👋 JavoVerse botga xush kelibsiz!",
         reply_markup=markup
     )
 
@@ -48,7 +58,7 @@ def start(message):
 @bot.callback_query_handler(func=lambda call: call.data == "check")
 def check(call):
 
-    if not is_member(call.from_user.id):
+    if not is_subscribed(call.from_user.id):
         bot.answer_callback_query(call.id, "❌ Avval kanalga obuna bo‘ling!")
         return
 
@@ -59,122 +69,127 @@ def check(call):
     markup.row("🕌 Namoz vaqti", "👶 Yosh kalkulyator")
 
     bot.send_message(call.message.chat.id,
-        "✅ Tasdiqlandi!\n📌 Menyuni tanlang:",
+        "✅ Menyu:",
         reply_markup=markup
     )
 
-# ---------------- HANDLER ----------------
+# ---------------- MAIN HANDLER ----------------
 @bot.message_handler(content_types=['text'])
 def handler(message):
+
+    # 🔒 GLOBAL LOCK (ENG MUHIM FIX)
+    if block_not_subscribed(message):
+        return
+
     chat_id = message.chat.id
     text = message.text
-    state = user_state.get(chat_id)
+    st = state.get(chat_id)
+
+    # ---------------- BACKUP RULE ----------------
+    if text == "⬅️ Orqaga":
+        state[chat_id] = None
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.row("🎵 MP3 qidirish", "💱 Valyuta kursi")
+        markup.row("☁️ Ob-havo", "🌍 Dunyo soati")
+        markup.row("🕌 Namoz vaqti", "👶 Yosh kalkulyator")
+
+        bot.send_message(chat_id, "🔙 Menyu:", reply_markup=markup)
+        return
 
     # ---------------- MP3 ----------------
-    if state == "mp3":
+    if st == "mp3":
         bot.send_message(chat_id, f"🎵 Qidirilmoqda: {text}")
-        user_state[chat_id] = None
+        state[chat_id] = None
         return
 
     # ---------------- WEATHER ----------------
-    if state == "weather":
-        bot.send_message(chat_id, f"☁️ Ob-havo: {text}")
-        user_state[chat_id] = None
+    if st == "weather":
+        bot.send_message(chat_id, f"☁️ Ob-havo: {text} (real API keyin ulanadi)")
+        state[chat_id] = None
         return
 
     # ---------------- TIME ----------------
-    if state == "time":
-        bot.send_message(chat_id, f"🌍 Vaqt: {text}")
-        user_state[chat_id] = None
+    if st == "time":
+        bot.send_message(chat_id, f"🌍 Dunyo vaqti: {text} (real API keyin)")
+        state[chat_id] = None
         return
 
-    # ---------------- PRAYER REGION ----------------
-    if state == "prayer":
-        city = text
-
+    # ---------------- PRAYER ----------------
+    if st == "prayer":
         try:
-            res = requests.get(
+            r = requests.get(
                 "https://api.aladhan.com/v1/timingsByCity",
                 params={
-                    "city": city,
+                    "city": text,
                     "country": "Uzbekistan",
                     "method": 2
                 }
             )
-            data = res.json()["data"]["timings"]
+            d = r.json()["data"]["timings"]
 
-            msg = (
-                f"🕌 Namoz vaqtlari ({city})\n\n"
-                f"🌅 Bomdod: {data['Fajr']}\n"
-                f"🌄 Quyosh: {data['Sunrise']}\n"
-                f"🏙 Peshin: {data['Dhuhr']}\n"
-                f"🌇 Asr: {data['Asr']}\n"
-                f"🌆 Shom: {data['Maghrib']}\n"
-                f"🌙 Xufton: {data['Isha']}"
+            bot.send_message(chat_id,
+                f"🕌 {text}\n\n"
+                f"🌅 Bomdod: {d['Fajr']}\n"
+                f"🏙 Peshin: {d['Dhuhr']}\n"
+                f"🌇 Asr: {d['Asr']}\n"
+                f"🌆 Shom: {d['Maghrib']}\n"
+                f"🌙 Xufton: {d['Isha']}"
             )
-
         except:
-            msg = "❌ Namoz vaqti topilmadi!"
+            bot.send_message(chat_id, "❌ Xatolik!")
 
-        bot.send_message(chat_id, msg)
-        user_state[chat_id] = None
+        state[chat_id] = None
         return
 
     # ---------------- CURRENCY STEP 1 ----------------
-    if state == "currency_select":
-        user_data[chat_id] = text
-        user_state[chat_id] = "currency_amount"
-        bot.send_message(chat_id, f"💱 {text} tanlandi\nMiqdorni yozing:")
+    if st == "currency_select":
+        data[chat_id] = text.upper()
+        state[chat_id] = "currency_amount"
+        bot.send_message(chat_id, "💰 Miqdorni yozing:")
         return
 
     # ---------------- CURRENCY STEP 2 ----------------
-    if state == "currency_amount":
-        cur = user_data.get(chat_id)
+    if st == "currency_amount":
+        rates = {
+            "USD": 12500, "EUR": 13500, "RUB": 130,
+            "GBP": 15500, "TRY": 400, "KZT": 25,
+            "KRW": 9, "JPY": 85, "CNY": 1750, "AED": 3400
+        }
 
         try:
             amount = float(text)
+            cur = data.get(chat_id)
+
+            result = amount * rates.get(cur, 1)
+
+            bot.send_message(chat_id,
+                f"💱 {amount} {cur} = {result} UZS"
+            )
         except:
-            bot.send_message(chat_id, "❗ Raqam kiriting!")
-            return
+            bot.send_message(chat_id, "❗ Faqat raqam kiriting!")
 
-        rates = {
-            "USD": 12500,
-            "EUR": 13500,
-            "RUB": 130,
-            "GBP": 15500,
-            "TRY": 400,
-            "KZT": 25,
-            "KRW": 9,
-            "JPY": 85,
-            "CNY": 1750,
-            "AED": 3400
-        }
-
-        result = amount * rates.get(cur, 1)
-
-        bot.send_message(chat_id, f"💱 {amount} {cur} ≈ {result} UZS")
-
-        user_state[chat_id] = None
+        state[chat_id] = None
         return
 
     # ---------------- BUTTONS ----------------
     if text == "🎵 MP3 qidirish":
-        user_state[chat_id] = "mp3"
-        bot.send_message(chat_id, "🎧 Qo‘shiq yoki xonanda nomini yozing:")
+        state[chat_id] = "mp3"
+        bot.send_message(chat_id, "🎧 Qo‘shiq yoki xonanda yozing:")
         return
 
     if text == "☁️ Ob-havo":
-        user_state[chat_id] = "weather"
+        state[chat_id] = "weather"
         bot.send_message(chat_id, "☁️ Shahar nomini yozing:")
         return
 
     if text == "🌍 Dunyo soati":
-        user_state[chat_id] = "time"
+        state[chat_id] = "time"
         bot.send_message(chat_id, "🌍 Shahar nomini yozing:")
         return
 
     if text == "🕌 Namoz vaqti":
-        user_state[chat_id] = "prayer"
+        state[chat_id] = "prayer"
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         for r in regions:
@@ -184,7 +199,7 @@ def handler(message):
         return
 
     if text == "💱 Valyuta kursi":
-        user_state[chat_id] = "currency_select"
+        state[chat_id] = "currency_select"
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.row("USD", "EUR", "RUB", "GBP", "TRY")
@@ -196,5 +211,5 @@ def handler(message):
     bot.send_message(chat_id, "❗ Menudan tanlang.")
 
 # ---------------- RUN ----------------
-print("🚀 JavoVerse ULTIMATE ishlayapti...")
+print("🚀 JavoVerse FINAL CLEAN ishlayapti...")
 bot.polling(none_stop=True, interval=0, timeout=20)
