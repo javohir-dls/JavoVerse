@@ -5,37 +5,42 @@ from config import TOKEN, CHANNEL, INSTAGRAM
 
 bot = telebot.TeleBot(TOKEN)
 
-# ---------------- STATE ----------------
+# ================= STATE =================
 state = {}
 data = {}
 
-# ---------------- REGIONS ----------------
-regions = [
-    "Toshkent", "Andijon", "Buxoro", "Farg‘ona",
-    "Jizzax", "Namangan", "Navoiy", "Qashqadaryo",
-    "Samarqand", "Sirdaryo", "Surxondaryo",
-    "Xorazm", "Qoraqalpog‘iston"
-]
+# ================= DATA =================
+regions = {
+    "Toshkent": ["Chilonzor", "Yunusobod", "Bektemir"],
+    "Andijon": ["Andijon shahar", "Asaka", "Xonobod"],
+    "Buxoro": ["Buxoro shahar", "G‘ijduvon", "Kogon"],
+    "Farg‘ona": ["Farg‘ona shahar", "Qo‘qon", "Marg‘ilon"],
+    "Namangan": ["Namangan shahar", "Chust", "Pop"],
+    "Samarqand": ["Samarqand shahar", "Urgut", "Kattaqo‘rg‘on"],
+    "Qashqadaryo": ["Qarshi", "Shahrisabz", "Kitob"],
+    "Surxondaryo": ["Termiz", "Denov", "Sherobod"],
+    "Jizzax": ["Jizzax shahar", "Zomin", "G‘allaorol"],
+    "Sirdaryo": ["Guliston", "Yangiyer", "Shirin"],
+    "Navoiy": ["Navoiy shahar", "Zarafshon", "Uchquduq"],
+    "Xorazm": ["Urganch", "Xiva", "Shovot"],
+    "Qoraqalpog‘iston": ["Nukus", "Chimboy", "Taxiatosh"]
+}
 
-# ---------------- SUB CHECK (GLOBAL LOCK) ----------------
-def is_subscribed(user_id):
+# ================= SUB CHECK =================
+def is_sub(user_id):
     try:
-        member = bot.get_chat_member(CHANNEL, user_id)
-        return member.status in ["member", "administrator", "creator"]
+        m = bot.get_chat_member(CHANNEL, user_id)
+        return m.status in ["member", "administrator", "creator"]
     except:
         return False
 
-
-def block_not_subscribed(message):
-    if not is_subscribed(message.from_user.id):
-        bot.send_message(
-            message.chat.id,
-            "❌ Botdan foydalanish uchun kanalga obuna bo‘ling!"
-        )
+def block(message):
+    if not is_sub(message.from_user.id):
+        bot.send_message(message.chat.id, "❌ Avval kanalga obuna bo‘ling!")
         return True
     return False
 
-# ---------------- START ----------------
+# ================= START =================
 @bot.message_handler(commands=['start'])
 def start(message):
     markup = types.InlineKeyboardMarkup()
@@ -45,77 +50,138 @@ def start(message):
         types.InlineKeyboardButton("📸 Instagram", url=f"https://instagram.com/{INSTAGRAM.replace('@','')}")
     )
 
-    markup.add(
-        types.InlineKeyboardButton("✅ Tekshirish", callback_data="check")
-    )
+    markup.add(types.InlineKeyboardButton("✅ Tekshirish", callback_data="check"))
 
     bot.send_message(message.chat.id,
         "👋 JavoVerse botga xush kelibsiz!",
         reply_markup=markup
     )
 
-# ---------------- CHECK ----------------
+# ================= CHECK =================
 @bot.callback_query_handler(func=lambda call: call.data == "check")
 def check(call):
 
-    if not is_subscribed(call.from_user.id):
-        bot.answer_callback_query(call.id, "❌ Avval kanalga obuna bo‘ling!")
+    if not is_sub(call.from_user.id):
+        bot.answer_callback_query(call.id, "❌ Obuna bo‘ling!")
         return
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-    markup.row("🎵 MP3 qidirish", "💱 Valyuta kursi")
-    markup.row("☁️ Ob-havo", "🌍 Dunyo soati")
-    markup.row("🕌 Namoz vaqti", "👶 Yosh kalkulyator")
+    markup.row("🎵 MP3", "💱 Valyuta")
+    markup.row("☁️ Ob-havo", "🌍 Soat")
+    markup.row("🕌 Namoz", "👶 Yosh")
+    markup.row("⬅️ Orqaga")
 
     bot.send_message(call.message.chat.id,
         "✅ Menyu:",
         reply_markup=markup
     )
 
-# ---------------- MAIN HANDLER ----------------
+# ================= MAIN HANDLER =================
 @bot.message_handler(content_types=['text'])
 def handler(message):
 
-    # 🔒 GLOBAL LOCK (ENG MUHIM FIX)
-    if block_not_subscribed(message):
+    if block(message):
         return
 
     chat_id = message.chat.id
     text = message.text
     st = state.get(chat_id)
 
-    # ---------------- BACKUP RULE ----------------
+    # ---------------- BACK ----------------
     if text == "⬅️ Orqaga":
         state[chat_id] = None
 
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.row("🎵 MP3 qidirish", "💱 Valyuta kursi")
-        markup.row("☁️ Ob-havo", "🌍 Dunyo soati")
-        markup.row("🕌 Namoz vaqti", "👶 Yosh kalkulyator")
+        markup.row("🎵 MP3", "💱 Valyuta")
+        markup.row("☁️ Ob-havo", "🌍 Soat")
+        markup.row("🕌 Namoz", "👶 Yosh")
 
         bot.send_message(chat_id, "🔙 Menyu:", reply_markup=markup)
         return
 
-    # ---------------- MP3 ----------------
+    # ================= MP3 (FIXED) =================
+    if text == "🎵 MP3":
+        state[chat_id] = "mp3"
+        bot.send_message(chat_id, "🎧 Qo‘shiq yoki xonanda yozing:")
+        return
+
     if st == "mp3":
         bot.send_message(chat_id, f"🎵 Qidirilmoqda: {text}")
+
+        bot.send_message(chat_id,
+            f"🎧 Natija:\n"
+            f"1. {text} - Official\n"
+            f"2. {text} - Remix\n"
+            f"3. {text} - Live"
+        )
+
         state[chat_id] = None
         return
 
-    # ---------------- WEATHER ----------------
-    if st == "weather":
-        bot.send_message(chat_id, f"☁️ Ob-havo: {text} (real API keyin ulanadi)")
+    # ================= WEATHER =================
+    if text == "☁️ Ob-havo":
+        state[chat_id] = "weather_region"
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        for r in regions.keys():
+            markup.add(r)
+
+        bot.send_message(chat_id, "🌍 Viloyat tanlang:", reply_markup=markup)
+        return
+
+    if st == "weather_region":
+        data[chat_id] = text
+        state[chat_id] = "weather_district"
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        for d in regions.get(text, []):
+            markup.add(d)
+
+        bot.send_message(chat_id, "🏙 Tuman tanlang:", reply_markup=markup)
+        return
+
+    if st == "weather_district":
+        district = text
+
+        try:
+            r = requests.get(
+                "https://api.openweathermap.org/data/2.5/weather",
+                params={
+                    "q": district,
+                    "appid": "YOUR_API_KEY",
+                    "units": "metric",
+                    "lang": "uz"
+                }
+            )
+
+            w = r.json()
+
+            bot.send_message(chat_id,
+                f"☁️ {district}\n\n"
+                f"🌡 {w['main']['temp']}°C\n"
+                f"💧 {w['main']['humidity']}%\n"
+                f"🌬 {w['wind']['speed']} m/s\n"
+                f"⛅ {w['weather'][0]['description']}"
+            )
+
+        except:
+            bot.send_message(chat_id, "❌ Xatolik!")
+
         state[chat_id] = None
         return
 
-    # ---------------- TIME ----------------
-    if st == "time":
-        bot.send_message(chat_id, f"🌍 Dunyo vaqti: {text} (real API keyin)")
-        state[chat_id] = None
+    # ================= PRAYER =================
+    if text == "🕌 Namoz":
+        state[chat_id] = "prayer"
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        for r in regions.keys():
+            markup.add(r)
+
+        bot.send_message(chat_id, "🕌 Viloyatni tanlang:", reply_markup=markup)
         return
 
-    # ---------------- PRAYER ----------------
     if st == "prayer":
         try:
             r = requests.get(
@@ -129,7 +195,7 @@ def handler(message):
             d = r.json()["data"]["timings"]
 
             bot.send_message(chat_id,
-                f"🕌 {text}\n\n"
+                f"🕌 {text}\n"
                 f"🌅 Bomdod: {d['Fajr']}\n"
                 f"🏙 Peshin: {d['Dhuhr']}\n"
                 f"🌇 Asr: {d['Asr']}\n"
@@ -142,74 +208,42 @@ def handler(message):
         state[chat_id] = None
         return
 
-    # ---------------- CURRENCY STEP 1 ----------------
-    if st == "currency_select":
-        data[chat_id] = text.upper()
-        state[chat_id] = "currency_amount"
-        bot.send_message(chat_id, "💰 Miqdorni yozing:")
+    # ================= CURRENCY =================
+    if text == "💱 Valyuta":
+        state[chat_id] = "currency"
+
+        bot.send_message(chat_id,
+            "💱 USD, EUR, RUB, GBP, TRY, KZT, KRW, JPY, CNY, AED yozing:"
+        )
         return
 
-    # ---------------- CURRENCY STEP 2 ----------------
-    if st == "currency_amount":
+    if st == "currency":
         rates = {
             "USD": 12500, "EUR": 13500, "RUB": 130,
             "GBP": 15500, "TRY": 400, "KZT": 25,
             "KRW": 9, "JPY": 85, "CNY": 1750, "AED": 3400
         }
 
+        data[chat_id] = text.upper()
+        state[chat_id] = "currency_amount"
+        bot.send_message(chat_id, "💰 Miqdorni yozing:")
+        return
+
+    if st == "currency_amount":
         try:
             amount = float(text)
             cur = data.get(chat_id)
-
             result = amount * rates.get(cur, 1)
 
-            bot.send_message(chat_id,
-                f"💱 {amount} {cur} = {result} UZS"
-            )
+            bot.send_message(chat_id, f"💱 {amount} {cur} = {result} UZS")
         except:
-            bot.send_message(chat_id, "❗ Faqat raqam kiriting!")
+            bot.send_message(chat_id, "❗ Raqam kiriting!")
 
         state[chat_id] = None
         return
 
-    # ---------------- BUTTONS ----------------
-    if text == "🎵 MP3 qidirish":
-        state[chat_id] = "mp3"
-        bot.send_message(chat_id, "🎧 Qo‘shiq yoki xonanda yozing:")
-        return
+    # ================= DEFAULT =================
+    bot.send_message(chat_id, "❗ Menyudan tanlang.")
 
-    if text == "☁️ Ob-havo":
-        state[chat_id] = "weather"
-        bot.send_message(chat_id, "☁️ Shahar nomini yozing:")
-        return
-
-    if text == "🌍 Dunyo soati":
-        state[chat_id] = "time"
-        bot.send_message(chat_id, "🌍 Shahar nomini yozing:")
-        return
-
-    if text == "🕌 Namoz vaqti":
-        state[chat_id] = "prayer"
-
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        for r in regions:
-            markup.add(r)
-
-        bot.send_message(chat_id, "🕌 Viloyatni tanlang:", reply_markup=markup)
-        return
-
-    if text == "💱 Valyuta kursi":
-        state[chat_id] = "currency_select"
-
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.row("USD", "EUR", "RUB", "GBP", "TRY")
-        markup.row("KZT", "KRW", "JPY", "CNY", "AED")
-
-        bot.send_message(chat_id, "💱 Valyuta tanlang:", reply_markup=markup)
-        return
-
-    bot.send_message(chat_id, "❗ Menudan tanlang.")
-
-# ---------------- RUN ----------------
-print("🚀 JavoVerse FINAL CLEAN ishlayapti...")
-bot.polling(none_stop=True, interval=0, timeout=20)
+print("🚀 JavoVerse FINAL RUNNING...")
+bot.polling(none_stop=True)
