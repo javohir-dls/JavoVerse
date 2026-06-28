@@ -1,22 +1,25 @@
 import telebot
 from config import TOKEN
 
-# handlers import
-from handlers import start, menu, mp3, weather, prayer, currency, time
+from handlers import start
+from handlers import menu
+from handlers import mp3
+from handlers import weather
+from handlers import prayer
+from handlers import currency
+from handlers import time
 
 bot = telebot.TeleBot(TOKEN)
 
-# ================= REGISTER HANDLERS =================
+# Handlerlarni ulash
 start.register(bot)
 menu.register(bot)
-
-# optional modul register (agar kerak bo‘lsa)
 mp3.register(bot)
 weather.register(bot)
 prayer.register(bot)
 currency.register(bot)
 time.register(bot)
 
-# ================= RUN =================
-print("🚀 JavoVerse bot ishga tushdi...")
-bot.polling(none_stop=True)
+print("✅ JavoVerse ishga tushdi!")
+
+bot.infinity_polling(skip_pending=True)
