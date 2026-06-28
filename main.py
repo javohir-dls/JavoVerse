@@ -1,12 +1,8 @@
 import telebot
 from telebot import types
+from config import TOKEN, CHANNEL, INSTAGRAM
 
-TOKEN = "YOUR_BOT_TOKEN"
 bot = telebot.TeleBot(TOKEN)
-
-CHANNEL = "@xushboqovblog"
-INSTAGRAM = "@javohir.ftbl"
-
 
 # ---------------- START ----------------
 @bot.message_handler(commands=['start'])
@@ -14,13 +10,13 @@ def start(message):
     markup = types.InlineKeyboardMarkup()
 
     btn1 = types.InlineKeyboardButton(
-        "📢 Telegram kanal", 
-        url="https://t.me/xushboqovblog"
+        "📢 Telegram kanal",
+        url=f"https://t.me/{CHANNEL.replace('@','')}"
     )
 
     btn2 = types.InlineKeyboardButton(
-        "📸 Instagram (ixtiyoriy)", 
-        url="https://instagram.com/javohir.ftbl"
+        "📸 Instagram (ixtiyoriy)",
+        url=f"https://instagram.com/{INSTAGRAM.replace('@','')}"
     )
 
     btn3 = types.InlineKeyboardButton(
@@ -34,43 +30,33 @@ def start(message):
 
     bot.send_message(
         message.chat.id,
-        "👋 *JavoVerse botga xush kelibsiz!*\n\n"
-        "👉 Avval kanalga obuna bo‘ling va tekshiring.",
-        parse_mode="Markdown",
+        "👋 JavoVerse botga xush kelibsiz!\n\n"
+        "👉 Avval kanalga obuna bo‘ling.",
         reply_markup=markup
     )
-
 
 # ---------------- CHECK ----------------
 @bot.callback_query_handler(func=lambda call: call.data == "check")
 def check(call):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
-    btn1 = types.KeyboardButton("🎵 MP3 qidirish")
-    btn2 = types.KeyboardButton("👶 Yosh kalkulyator")
-    btn3 = types.KeyboardButton("🌍 Dunyo soati")
-    btn4 = types.KeyboardButton("🕌 Namoz vaqti")
-    btn5 = types.KeyboardButton("☁️ Ob-havo")
-    btn6 = types.KeyboardButton("💱 Valyuta kursi")
-
-    markup.add(btn1, btn2)
-    markup.add(btn3, btn4)
-    markup.add(btn5, btn6)
+    markup.row("🎵 MP3 qidirish", "👶 Yosh kalkulyator")
+    markup.row("🌍 Dunyo soati", "🕌 Namoz vaqti")
+    markup.row("☁️ Ob-havo", "💱 Valyuta kursi")
 
     bot.send_message(
         call.message.chat.id,
-        "✅ Tasdiqlandi!\n\n🧭 Menudan birini tanlang:",
+        "✅ Tasdiqlandi!\n\n🧭 Menudan tanlang:",
         reply_markup=markup
     )
 
-
-# ---------------- TEXT HANDLER ----------------
+# ---------------- MENU ----------------
 @bot.message_handler(content_types=['text'])
-def menu_handler(message):
+def menu(message):
     text = message.text
 
     if text == "🎵 MP3 qidirish":
-        bot.send_message(message.chat.id, "🎧 Qo‘shiq nomini yozing:")
+        bot.send_message(message.chat.id, "🎧 Qo‘shiq yoki xonanda nomini yozing:")
 
     elif text == "👶 Yosh kalkulyator":
         bot.send_message(message.chat.id, "📅 Tug‘ilgan sanani yozing (YYYY-MM-DD):")
@@ -85,12 +71,17 @@ def menu_handler(message):
         bot.send_message(message.chat.id, "☁️ Shahar nomini yozing:")
 
     elif text == "💱 Valyuta kursi":
-        bot.send_message(message.chat.id, "💱 Miqdor va valyutani yozing (masalan: 75 USD)")
+        bot.send_message(message.chat.id, "💱 Masalan: 75 USD")
 
     else:
-        bot.send_message(message.chat.id, "❗ Menudan tanlang yoki to‘g‘ri yozing.")
+        bot.send_message(message.chat.id, "❗ Menudan tanlang.")
 
+# ---------------- ERROR HANDLING ----------------
+@bot.message_handler(func=lambda message: True)
+def fallback(message):
+    pass
+
+print("JavoVerse bot ishga tushdi...")
 
 # ---------------- RUN ----------------
-print("JavoVerse bot ishga tushdi...")
-bot.polling()
+bot.polling(none_stop=True, interval=0, timeout=20)
