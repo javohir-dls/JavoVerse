@@ -1,9 +1,9 @@
 from aiogram import Router, F
 from aiogram.types import (
     Message,
+    CallbackQuery,
     InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    CallbackQuery
+    InlineKeyboardButton
 )
 
 from config import CHANNEL, INSTAGRAM
@@ -12,11 +12,11 @@ from handlers.menu import main_menu
 router = Router()
 
 
-async def check_subscription(bot, user_id):
+async def check_subscription(bot, user_id: int):
     try:
         member = await bot.get_chat_member(CHANNEL, user_id)
-        return member.status in ("member", "administrator", "creator")
-    except:
+        return member.status in ["member", "administrator", "creator"]
+    except Exception:
         return False
 
 
@@ -27,13 +27,13 @@ async def start_command(message: Message):
             [
                 InlineKeyboardButton(
                     text="📢 Telegram kanal",
-                    url=f"https://t.me/{CHANNEL.replace('@','')}"
+                    url=f"https://t.me/{CHANNEL.replace('@', '')}"
                 )
             ],
             [
                 InlineKeyboardButton(
                     text="📸 Instagram",
-                    url=f"https://instagram.com/{INSTAGRAM.replace('@','')}"
+                    url=f"https://instagram.com/{INSTAGRAM.replace('@', '')}"
                 )
             ],
             [
@@ -45,24 +45,25 @@ async def start_command(message: Message):
         ]
     )
 
-    await message.answer(
+    text = (
         "👋 Assalomu alaykum!\n\n"
-        "Botdan foydalanish uchun kanalga obuna bo'ling.",
-        reply_markup=keyboard
+        "🤖 JavoVerse botiga xush kelibsiz.\n\n"
+        "Botdan foydalanish uchun avval kanalga obuna bo'ling."
     )
+
+    await message.answer(text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "check_sub")
 async def check_sub(callback: CallbackQuery):
-    ok = await check_subscription(callback.bot, callback.from_user.id)
-
-    if ok:
+    if await check_subscription(callback.bot, callback.from_user.id):
         await callback.message.answer(
-            "✅ Obuna tasdiqlandi!\n\nJavoVerse botiga xush kelibsiz.",
+            "✅ Obunangiz tasdiqlandi!\n\n"
+            "Quyidagi menyudan kerakli bo'limni tanlang.",
             reply_markup=main_menu()
         )
     else:
         await callback.answer(
-            "❌ Avval kanalga obuna bo'ling!",
+            "❌ Avval @xushboqovblog kanaliga obuna bo'ling!",
             show_alert=True
         )
